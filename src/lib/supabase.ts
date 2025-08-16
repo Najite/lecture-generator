@@ -1,0 +1,51 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export type Profile = {
+  id: string;
+  email: string;
+  full_name: string;
+  role: 'admin' | 'lecturer';
+  created_at: string;
+  updated_at: string;
+};
+
+export type Course = {
+  id: string;
+  title: string;
+  description: string;
+  code: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CourseAssignment = {
+  id: string;
+  course_id: string;
+  lecturer_id: string;
+  assigned_at: string;
+  assigned_by: string;
+  course?: Course;
+  lecturer?: Profile;
+};
+
+export type GeneratedContent = {
+  id: string;
+  course_id: string;
+  lecturer_id: string;
+  content_type: string;
+  title: string;
+  content: string;
+  prompt_used: string;
+  created_at: string;
+  course?: Course;
+};
