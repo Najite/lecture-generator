@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ user: User; profile: Profile }>;
   signUp: (email: string, password: string, fullName: string, role?: 'admin' | 'lecturer') => Promise<void>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string): Promise<Profile> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -81,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             if (insertError) throw insertError;
             setProfile(newProfile);
+            return newProfile;
           } else {
             throw error;
           }
@@ -89,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         setProfile(data);
+        return data;
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -108,27 +110,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (!insertError) {
             setProfile(newProfile);
+            return newProfile;
           } else {
-            setProfile(null);
+            throw new Error('Failed to create profile');
           }
+        } else {
+          throw new Error('No user found');
         }
       } catch (createError) {
         console.error('Failed to create basic profile:', createError);
-        setProfile(null);
+        throw createError;
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<{ user: User; profile: Profile }> => {
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ 
-      email, 
-      password 
-    });
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
+      if (error) throw error;
+      
+      if (!data.user) throw new Error('No user returned from sign in');
+      
+      // Wait for profile to be fetched
+      const profile = await fetchProfile(data.user.id);
+      
+      return { user: data.user, profile };
+    } catch (error) {
+      setLoading(false);
+      throw error;
+    }
   };
 
   const signUp = async (email: string, password: string, fullName: string, role: 'admin' | 'lecturer' = 'lecturer') => {
