@@ -22,16 +22,20 @@ export function Login({ type }: LoginProps) {
     setLoading(true);
 
     try {
-      await signIn(email, password);
-      // Navigation will be handled by the auth state change
-      console.log('Login successful, waiting for navigation...');
+      const { user, profile } = await signIn(email, password);
+      console.log('Login successful, navigating...', { user: user.email, role: profile.role });
+      
+      // Navigate based on the actual user role from profile
+      if (profile.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/lecturer/dashboard');
+      }
     } catch (error: any) {
       console.error('Login error:', error);
       setError(error.message || 'Invalid email or password. Please check your credentials and try again.');
-      setLoading(false);
-      setLoading(false);
     } finally {
-      // Loading will be set to false after navigation or on error
+      setLoading(false); // Ensure loading is always reset
     }
   };
 
