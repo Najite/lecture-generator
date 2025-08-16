@@ -22,14 +22,23 @@ export function Login({ type }: LoginProps) {
     setLoading(true);
 
     try {
-      await signIn(email, password);
-      // Don't navigate immediately - let the auth context handle it
-      // The useEffect in AuthContext will redirect based on the user's role
+      const result = await signIn(email, password);
+      if (result?.user) {
+        // Wait a moment for profile to load, then navigate
+        setTimeout(() => {
+          if (type === 'admin') {
+            navigate('/admin');
+          } else {
+            navigate('/dashboard');
+          }
+        }, 1000);
+      }
     } catch (error: any) {
       console.error('Login error:', error);
       setError(error.message || 'Invalid email or password. Please check your credentials and try again.');
-    } finally {
       setLoading(false);
+    } finally {
+      // Don't set loading to false immediately, let the navigation happen
     }
   };
 

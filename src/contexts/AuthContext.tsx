@@ -57,9 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const fetchProfile = async (userId: string) => {
-    console.log('Fetching profile for user:', userId);
     try {
-      // First try to get profile directly
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -67,12 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error) {
-        console.log('Profile fetch error:', error);
-        // If profile doesn't exist, create it from user metadata
         if (error.code === 'PGRST116') {
           const { data: { user } } = await supabase.auth.getUser();
           if (user?.user_metadata) {
-            console.log('Creating profile from metadata:', user.user_metadata);
             const { data: newProfile, error: insertError } = await supabase
               .from('profiles')
               .insert({
@@ -86,7 +81,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             if (insertError) throw insertError;
             setProfile(newProfile);
-            console.log('Profile created:', newProfile);
           } else {
             throw error;
           }
@@ -95,11 +89,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         setProfile(data);
-        console.log('Profile loaded:', data);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
-      // Try to create a basic profile if none exists
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -116,7 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (!insertError) {
             setProfile(newProfile);
-            console.log('Basic profile created:', newProfile);
           } else {
             setProfile(null);
           }
@@ -131,13 +122,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    console.log('Attempting sign in for:', email);
+    setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ 
       email, 
       password 
     });
-    console.log('Sign in result:', { data: data.user?.email, error });
     if (error) throw error;
+    return data;
   };
 
   const signUp = async (email: string, password: string, fullName: string, role: 'admin' | 'lecturer' = 'lecturer') => {
