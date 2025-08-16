@@ -40,7 +40,7 @@ export function AdminSetupInstructions() {
                 <p className="bg-blue-100 p-2 rounded mt-1">
                   • Go to Supabase Dashboard → Authentication → Users<br/>
                   • Click "Add User" and enter email/password<br/>
-                  • In "User Metadata" add: <code>{"full_name": "Name", "role": "admin"}</code><br/>
+                  • In "User Metadata" add: <code>&lbrace;"full_name": "Name", "role": "admin"&rbrace;</code><br/>
                   • Profile will be created automatically
                 </p>
               </div>
