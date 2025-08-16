@@ -22,23 +22,16 @@ export function Login({ type }: LoginProps) {
     setLoading(true);
 
     try {
-      const result = await signIn(email, password);
-      if (result?.user) {
-        // Wait a moment for profile to load, then navigate
-        setTimeout(() => {
-          if (type === 'admin') {
-            navigate('/admin');
-          } else {
-            navigate('/dashboard');
-          }
-        }, 1000);
-      }
+      await signIn(email, password);
+      // Navigation will be handled by the auth state change
+      console.log('Login successful, waiting for navigation...');
     } catch (error: any) {
       console.error('Login error:', error);
       setError(error.message || 'Invalid email or password. Please check your credentials and try again.');
       setLoading(false);
+      setLoading(false);
     } finally {
-      // Don't set loading to false immediately, let the navigation happen
+      // Loading will be set to false after navigation or on error
     }
   };
 

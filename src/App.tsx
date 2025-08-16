@@ -35,6 +35,23 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
 
 function AppRoutes() {
   const { user, profile, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Handle navigation after successful authentication
+  React.useEffect(() => {
+    if (!loading && user && profile) {
+      const currentPath = window.location.pathname;
+      
+      // If user is on login page, redirect to appropriate dashboard
+      if (currentPath === '/login' || currentPath === '/admin/login') {
+        if (profile.role === 'admin') {
+          navigate('/admin', { replace: true });
+        } else if (profile.role === 'lecturer') {
+          navigate('/dashboard', { replace: true });
+        }
+      }
+    }
+  }, [user, profile, loading, navigate]);
 
   return (
     <Routes>
