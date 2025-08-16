@@ -9,6 +9,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Admin functions that use service role for elevated permissions
+export const createAdminClient = () => {
+  const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+  if (serviceRoleKey) {
+    return createClient(supabaseUrl, serviceRoleKey);
+  }
+  return supabase; // Fallback to regular client
+};
+
 export type Profile = {
   id: string;
   email: string;

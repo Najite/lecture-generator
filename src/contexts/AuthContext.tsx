@@ -57,16 +57,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
+      // First try to get profile directly
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
-      setProfile(data);
+      if (error) {
+        // If profile doesn't exist, create it from user metadata
+        if (error.code === 'PGRST116') {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user?.user_metadata) {
+            const { data: newProfile, error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: userId,
+                email: user.email!,
+                full_name: user.user_metadata.full_name || 'User',
+                role: user.user_metadata.role || 'lecturer'
+              })
+              .select()
+              .single();
+            
+            if (insertError) throw insertError;
+            setProfile(newProfile);
+          } else {
+            throw error;
+          }
+        } else {
+          throw error;
+        }
+      } else {
+        setProfile(data);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
+      // Set a default profile to prevent infinite loading
+      setProfile(null);
     } finally {
       setLoading(false);
     }

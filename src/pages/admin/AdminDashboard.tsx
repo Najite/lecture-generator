@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, BookOpen, FileText, Plus, UserPlus } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase, Profile, Course, CourseAssignment, GeneratedContent } from '../../lib/supabase';
+import { supabase, createAdminClient, Profile, Course, CourseAssignment, GeneratedContent } from '../../lib/supabase';
 import { AdminSetupInstructions } from '../../components/AdminSetupInstructions';
 
 export function AdminDashboard() {
@@ -33,15 +33,18 @@ export function AdminDashboard() {
 
   const fetchData = async () => {
     try {
+      // Use admin client for elevated permissions
+      const adminClient = createAdminClient();
+      
       const [lecturersRes, coursesRes, assignmentsRes, contentRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('role', 'lecturer'),
-        supabase.from('courses').select('*'),
-        supabase.from('course_assignments').select(`
+        adminClient.from('profiles').select('*').eq('role', 'lecturer'),
+        adminClient.from('courses').select('*'),
+        adminClient.from('course_assignments').select(`
           *,
           course:courses(*),
           lecturer:profiles(*)
         `),
-        supabase.from('generated_content').select(`
+        adminClient.from('generated_content').select(`
           *,
           course:courses(*),
           lecturer:profiles(*)
@@ -67,7 +70,8 @@ export function AdminDashboard() {
   const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { error } = await supabase
+      const adminClient = createAdminClient();
+      const { error } = await adminClient
         .from('courses')
         .insert({
           title: courseTitle,
@@ -92,10 +96,12 @@ export function AdminDashboard() {
   const handleCreateLecturer = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const adminClient = createAdminClient();
+      
       // Determine role based on email or explicit selection
       const userRole = lecturerEmail === 'admin@eduai.com' ? 'admin' : 'lecturer';
       
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await adminClient.auth.signUp({
         email: lecturerEmail,
         password: lecturerPassword,
         options: {
@@ -149,7 +155,8 @@ ${userRole === 'admin' ?
   const handleAssignCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { error } = await supabase
+      const adminClient = createAdminClient();
+      const { error } = await adminClient
         .from('course_assignments')
         .insert({
           course_id: selectedCourseId,
