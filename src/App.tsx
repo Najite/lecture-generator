@@ -16,17 +16,19 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">Authenticating...</p>
         </div>
       </div>
     );
   }
 
   if (!user || !profile) {
+    console.log('Redirecting to login - user:', !!user, 'profile:', !!profile);
     return <Navigate to="/login" replace />;
   }
 
   if (requiredRole && profile.role !== requiredRole) {
+    console.log('Role mismatch - required:', requiredRole, 'actual:', profile.role);
     return <Navigate to={profile.role === 'admin' ? '/admin' : '/dashboard'} replace />;
   }
 
@@ -34,6 +36,19 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
 }
 
 function AppRoutes() {
+  const { user, profile, loading } = useAuth();
+
+  // Auto-redirect authenticated users to their dashboard
+  React.useEffect(() => {
+    if (!loading && user && profile) {
+      const currentPath = window.location.pathname;
+      if (currentPath === '/' || currentPath === '/login' || currentPath === '/admin/login') {
+        const targetPath = profile.role === 'admin' ? '/admin' : '/dashboard';
+        window.location.replace(targetPath);
+      }
+    }
+  }, [user, profile, loading]);
+
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
