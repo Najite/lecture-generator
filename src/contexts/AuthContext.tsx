@@ -63,11 +63,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     try {
       console.log('Step 1: Querying profiles table...');
-      const { data, error } = await supabase
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Profile query timeout after 10 seconds')), 10000);
+      });
+      
+      const queryPromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
+      
+      console.log('Step 1.5: Starting query with timeout...');
+      
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      
 
       console.log('Step 2: Query result:', { data, error });
 
@@ -75,16 +86,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Step 3: Error occurred:', error);
         console.log('Error code:', error.code);
         console.log('Error message:', error.message);
+        console.log('Error details:', error.details);
+        console.log('Error hint:', error.hint);
         
         if (error.code === 'PGRST116') {
           console.log('Step 4: Profile not found, creating new profile...');
           // Profile doesn't exist, create one
-          const { data: { user } } = await supabase.auth.getUser();
+          console.log('Step 4.1: Getting current user...');
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          console.log('Step 4.2: Current user result:', { user: user?.email, userError });
+          
+          if (userError) {
+            console.error('Step 4.3: Error getting user:', userError);
+            throw userError;
+          }
+          
           console.log('Step 5: Current user data:', user);
           
           if (user?.user_metadata) {
             console.log('Step 6: Creating profile from metadata:', user.user_metadata);
-            const { data: newProfile, error: insertError } = await supabase
+            
+            const insertPromise = supabase
               .from('profiles')
               .insert({
                 id: userId,
@@ -95,10 +117,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .select()
               .single();
             
+            console.log('Step 6.5: Starting profile creation...');
+            const { data: newProfile, error: insertError } = await Promise.race([
+              insertPromise,
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Profile creation timeout')), 10000))
+            ]) as any;
+            
             console.log('Step 7: Profile creation result:', { newProfile, insertError });
             
             if (insertError) {
               console.error('Step 8: Profile creation failed:', insertError);
+              console.error('Insert error details:', insertError.details);
+              console.error('Insert error hint:', insertError.hint);
               throw insertError;
             }
             console.log('Step 9: Profile created successfully:', newProfile);
@@ -108,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             console.log('Step 6b: No user metadata, creating default profile');
             // No user metadata, create default profile
-            const { data: newProfile, error: insertError } = await supabase
+            const defaultInsertPromise = supabase
               .from('profiles')
               .insert({
                 id: userId,
@@ -119,10 +149,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .select()
               .single();
             
+            const { data: newProfile, error: insertError } = await Promise.race([
+              defaultInsertPromise,
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Default profile creation timeout')), 10000))
+            ]) as any;
+            
             console.log('Step 7b: Default profile creation result:', { newProfile, insertError });
             
             if (insertError) {
               console.error('Step 8b: Default profile creation failed:', insertError);
+              console.error('Default insert error details:', insertError.details);
               throw insertError;
             }
             console.log('Step 9b: Default profile created successfully:', newProfile);
@@ -144,11 +180,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Step 4b: Profile state updated with existing data');
         return data;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('=== FETCH PROFILE ERROR ===');
       console.error('Caught error:', error);
       console.error('Error type:', typeof error);
+      console.error('Error name:', error?.name);
+      console.error('Error message:', error?.message);
       console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      
+      // If it's a timeout, try to create profile anyway
+      if (error?.message?.includes('timeout')) {
+        console.log('=== TIMEOUT RECOVERY ===');
+        console.log('Query timed out, attempting to create profile directly...');
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: newProfile, error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: userId,
+                email: user.email!,
+                full_name: user.user_metadata?.full_name || 'User',
+                role: user.user_metadata?.role || 'lecturer'
+              })
+              .select()
+              .single();
+            
+            if (!insertError && newProfile) {
+              console.log('Recovery profile creation successful:', newProfile);
+              setProfile(newProfile);
+              return newProfile;
+            }
+          }
+        } catch (recoveryError) {
+          console.error('Recovery attempt failed:', recoveryError);
+        }
+      }
+      
       setProfile(null);
       console.log('Profile set to null due to error');
       throw error;
