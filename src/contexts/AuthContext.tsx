@@ -29,28 +29,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session?.user?.email);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
+    // Don't restore sessions automatically - users must explicitly log in
+    setLoading(false);
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session?.user?.email);
-      setUser(session?.user ?? null);
-      if (session?.user) {
+      // Only handle explicit sign in/out events, not automatic session restoration
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user);
         await fetchProfile(session.user.id);
-      } else {
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
         setProfile(null);
-        setLoading(false);
       }
     });
 
