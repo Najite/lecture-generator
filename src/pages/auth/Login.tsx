@@ -51,7 +51,13 @@ export function Login({ type }: LoginProps) {
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      setError(error.message || 'Invalid email or password. Please check your credentials and try again.');
+      if (error.message?.includes('Invalid login credentials')) {
+        setError('Invalid email or password. Please check your credentials and try again.');
+      } else if (error.message?.includes('Email not confirmed')) {
+        setError('Please check your email and confirm your account before signing in.');
+      } else {
+        setError(error.message || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

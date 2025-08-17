@@ -60,7 +60,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = async (userId: string): Promise<Profile> => {
     try {
       console.log('Fetching profile for user:', userId);
-      setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -87,27 +86,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             if (insertError) {
               console.error('Error creating profile:', insertError);
-              setLoading(false);
               throw insertError;
             }
             console.log('Profile created:', newProfile);
             setProfile(newProfile);
-            setLoading(false);
+            return newProfile;
+          } else {
+            // No user metadata, create default profile
+            console.log('No user metadata, creating default profile');
+            const { data: newProfile, error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: userId,
+                email: user?.email || 'unknown@example.com',
+                full_name: 'User',
+                role: 'lecturer'
+              })
+              .select()
+              .single();
+            
+            if (insertError) {
+              console.error('Error creating default profile:', insertError);
+              throw insertError;
+            }
+            console.log('Default profile created:', newProfile);
+            setProfile(newProfile);
             return newProfile;
           }
+        } else {
+          // Other error
+          console.error('Profile fetch error:', error);
+          setProfile(null);
+          throw error;
         }
-        setLoading(false);
-        throw error;
       } else {
         console.log('Profile fetched:', data);
         setProfile(data);
-        setLoading(false);
         return data;
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
-      setLoading(false);
+      setProfile(null);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
