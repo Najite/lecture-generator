@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Layout } from './components/Layout/Layout';
 import { Landing } from './pages/Landing';
@@ -11,48 +11,34 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'admin' | 'lecturer' }) {
   const { user, profile, loading } = useAuth();
 
+  console.log('ProtectedRoute check:', { user: user?.email, profile: profile?.role, loading, requiredRole });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Authenticating...</p>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
 
   if (!user || !profile) {
+    console.log('No user or profile, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
   if (requiredRole && profile.role !== requiredRole) {
+    console.log('Role mismatch, redirecting:', { userRole: profile.role, requiredRole });
     return <Navigate to={profile.role === 'admin' ? '/admin' : '/dashboard'} replace />;
   }
 
+  console.log('Access granted to protected route');
   return <>{children}</>;
 }
 
 function AppRoutes() {
-  const { user, profile, loading } = useAuth();
-  const navigate = useNavigate();
-
-  // Handle navigation after successful authentication
-  React.useEffect(() => {
-    if (!loading && user && profile) {
-      const currentPath = window.location.pathname;
-      
-      // If user is on login page, redirect to appropriate dashboard
-      if (currentPath === '/login' || currentPath === '/admin/login') {
-        if (profile.role === 'admin') {
-          navigate('/admin', { replace: true });
-        } else if (profile.role === 'lecturer') {
-          navigate('/dashboard', { replace: true });
-        }
-      }
-    }
-  }, [user, profile, loading, navigate]);
-
   return (
     <Routes>
       <Route path="/" element={<Landing />} />

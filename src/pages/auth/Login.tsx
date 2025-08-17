@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Brain, Mail, Lock, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,8 +13,20 @@ export function Login({ type }: LoginProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { signIn } = useAuth();
+  const { signIn, user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading && user && profile) {
+      console.log('User already authenticated, redirecting...', { role: profile.role });
+      if (profile.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else if (profile.role === 'lecturer') {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [user, profile, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,22 +34,40 @@ export function Login({ type }: LoginProps) {
     setLoading(true);
 
     try {
+      console.log('Attempting login for:', email);
       const { user, profile } = await signIn(email, password);
-      console.log('Login successful, navigating...', { user: user.email, role: profile.role });
+      console.log('Login successful:', { email: user.email, role: profile.role });
       
-      // Navigate based on the actual user role from profile
+      // Navigate based on user role
       if (profile.role === 'admin') {
-        navigate('/admin/dashboard');
+        console.log('Navigating to admin dashboard');
+        navigate('/admin', { replace: true });
+      } else if (profile.role === 'lecturer') {
+        console.log('Navigating to lecturer dashboard');
+        navigate('/dashboard', { replace: true });
       } else {
-        navigate('/lecturer/dashboard');
+        console.error('Unknown user role:', profile.role);
+        setError('Invalid user role. Please contact administrator.');
       }
     } catch (error: any) {
       console.error('Login error:', error);
       setError(error.message || 'Invalid email or password. Please check your credentials and try again.');
     } finally {
-      setLoading(false); // Ensure loading is always reset
+      setLoading(false);
     }
   };
+
+  // Show loading if auth is still initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -114,7 +144,14 @@ export function Login({ type }: LoginProps) {
               disabled={loading}
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Signing in...
+                </div>
+              ) : (
+                'Sign In'
+              )}
             </button>
           </div>
 
