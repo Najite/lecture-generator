@@ -11,10 +11,15 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'admin' | 'lecturer' }) {
   const { user, profile, loading } = useAuth();
 
-  console.log('ProtectedRoute check:', { user: user?.email, profile: profile?.role, loading, requiredRole });
+  console.log('=== PROTECTED ROUTE CHECK ===');
+  console.log('User:', user?.email || 'null');
+  console.log('Profile:', profile ? { id: profile.id, role: profile.role, email: profile.email } : 'null');
+  console.log('Loading:', loading);
+  console.log('Required Role:', requiredRole);
+  console.log('================================');
 
   if (loading) {
-    console.log('ProtectedRoute: Still loading...');
+    console.log('🔄 PROTECTED ROUTE: Still loading, showing spinner...');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -26,16 +31,18 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
   }
 
   if (!user || !profile) {
-    console.log('No user or profile, redirecting to login');
+    console.log('❌ PROTECTED ROUTE: No user or profile, redirecting to login');
+    console.log('User exists:', !!user);
+    console.log('Profile exists:', !!profile);
     return <Navigate to="/login" replace />;
   }
 
   if (requiredRole && profile.role !== requiredRole) {
-    console.log('Role mismatch, redirecting:', { userRole: profile.role, requiredRole });
+    console.log('🚫 PROTECTED ROUTE: Role mismatch, redirecting:', { userRole: profile.role, requiredRole });
     return <Navigate to={profile.role === 'admin' ? '/admin' : '/dashboard'} replace />;
   }
 
-  console.log('Access granted to protected route');
+  console.log('✅ PROTECTED ROUTE: Access granted, rendering children');
   return <>{children}</>;
 }
 

@@ -58,21 +58,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const fetchProfile = async (userId: string): Promise<Profile> => {
+    console.log('=== FETCH PROFILE START ===');
+    console.log('User ID:', userId);
+    
     try {
-      console.log('Fetching profile for user:', userId);
+      console.log('Step 1: Querying profiles table...');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
+      console.log('Step 2: Query result:', { data, error });
+
       if (error) {
-        console.log('Profile fetch error:', error);
+        console.log('Step 3: Error occurred:', error);
+        console.log('Error code:', error.code);
+        console.log('Error message:', error.message);
+        
         if (error.code === 'PGRST116') {
+          console.log('Step 4: Profile not found, creating new profile...');
           // Profile doesn't exist, create one
           const { data: { user } } = await supabase.auth.getUser();
+          console.log('Step 5: Current user data:', user);
+          
           if (user?.user_metadata) {
-            console.log('Creating profile from metadata:', user.user_metadata);
+            console.log('Step 6: Creating profile from metadata:', user.user_metadata);
             const { data: newProfile, error: insertError } = await supabase
               .from('profiles')
               .insert({
@@ -84,16 +95,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .select()
               .single();
             
+            console.log('Step 7: Profile creation result:', { newProfile, insertError });
+            
             if (insertError) {
-              console.error('Error creating profile:', insertError);
+              console.error('Step 8: Profile creation failed:', insertError);
               throw insertError;
             }
-            console.log('Profile created:', newProfile);
+            console.log('Step 9: Profile created successfully:', newProfile);
             setProfile(newProfile);
+            console.log('Step 10: Profile state updated');
             return newProfile;
           } else {
+            console.log('Step 6b: No user metadata, creating default profile');
             // No user metadata, create default profile
-            console.log('No user metadata, creating default profile');
             const { data: newProfile, error: insertError } = await supabase
               .from('profiles')
               .insert({
@@ -105,31 +119,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .select()
               .single();
             
+            console.log('Step 7b: Default profile creation result:', { newProfile, insertError });
+            
             if (insertError) {
-              console.error('Error creating default profile:', insertError);
+              console.error('Step 8b: Default profile creation failed:', insertError);
               throw insertError;
             }
-            console.log('Default profile created:', newProfile);
+            console.log('Step 9b: Default profile created successfully:', newProfile);
             setProfile(newProfile);
+            console.log('Step 10b: Profile state updated');
             return newProfile;
           }
         } else {
+          console.log('Step 4b: Other database error occurred');
           // Other error
-          console.error('Profile fetch error:', error);
+          console.error('Step 5b: Database error details:', error);
           setProfile(null);
+          console.log('Step 6b: Profile set to null');
           throw error;
         }
       } else {
-        console.log('Profile fetched:', data);
+        console.log('Step 3b: Profile found successfully:', data);
         setProfile(data);
+        console.log('Step 4b: Profile state updated with existing data');
         return data;
       }
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
+      console.error('=== FETCH PROFILE ERROR ===');
+      console.error('Caught error:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       setProfile(null);
+      console.log('Profile set to null due to error');
       throw error;
     } finally {
+      console.log('=== FETCH PROFILE FINALLY ===');
+      console.log('Setting loading to false');
       setLoading(false);
+      console.log('Loading state updated to false');
+      console.log('=== FETCH PROFILE END ===');
     }
   };
 
