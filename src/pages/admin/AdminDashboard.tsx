@@ -28,6 +28,9 @@ export function AdminDashboard() {
   useEffect(() => {
     if (profile?.role === 'admin') {
       fetchData();
+    } else if (profile) {
+      // User is authenticated but not admin
+      setLoading(false);
     }
   }, [profile]);
 

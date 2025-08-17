@@ -20,6 +20,8 @@ export function LecturerDashboard() {
     if (profile) {
       fetchAssignments();
       fetchGeneratedContent();
+    } else {
+      setLoading(false);
     }
   }, [profile]);
 
