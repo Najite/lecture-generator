@@ -29,20 +29,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Don't restore sessions automatically - users must explicitly log in
-    setLoading(false);
+    // Initialize auth state
+    const initializeAuth = async () => {
+      try {
+        // Don't restore sessions automatically - users must explicitly log in
+        setLoading(false);
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session?.user?.email);
+      
       // Only handle explicit sign in/out events, not automatic session restoration
       if (event === 'SIGNED_IN' && session?.user) {
-        setUser(session.user);
-        await fetchProfile(session.user.id);
+        console.log('Handling SIGNED_IN event');
+        try {
+          setUser(session.user);
+          await fetchProfile(session.user.id);
+        } catch (error) {
+          console.error('Error handling sign in:', error);
+          setLoading(false);
+        }
       } else if (event === 'SIGNED_OUT') {
+        console.log('Handling SIGNED_OUT event');
         setUser(null);
         setProfile(null);
+        setLoading(false);
       }
     });
 
@@ -50,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const fetchProfile = async (userId: string): Promise<Profile> => {
+    console.log('Fetching profile for user:', userId);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -58,8 +79,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error) {
+        console.log('Profile query error:', error.code, error.message);
         if (error.code === 'PGRST116') {
           // Profile doesn't exist, create one
+          console.log('Profile not found, creating new profile');
           const { data: { user }, error: userError } = await supabase.auth.getUser();
           
           if (userError) {
@@ -78,24 +101,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single();
           
           if (insertError) {
+            console.error('Error creating profile:', insertError);
             throw insertError;
           }
           
+          console.log('Profile created successfully:', newProfile);
           setProfile(newProfile);
+          setLoading(false);
           return newProfile;
         } else {
           throw error;
         }
       } else {
+        console.log('Profile found:', data);
         setProfile(data);
+        setLoading(false);
         return data;
       }
     } catch (error: any) {
       console.error('Error fetching profile:', error);
       setProfile(null);
-      throw error;
-    } finally {
       setLoading(false);
+      throw error;
     }
   };
 
@@ -111,17 +138,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (error) {
         console.error('Sign in error:', error);
+        setLoading(false);
         throw error;
       }
       
       if (!data.user) {
+        setLoading(false);
         throw new Error('No user returned from sign in');
       }
       
       console.log('Sign in successful, fetching profile...');
-      const profile = await fetchProfile(data.user.id);
+      // Don't call fetchProfile here - let the auth state change handler do it
+      // to avoid double calls and race conditions
+      setUser(data.user);
       
-      return { user: data.user, profile };
+      // Wait for profile to be set by the auth state change handler
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Profile loading timeout'));
+        }, 10000);
+        
+        const checkProfile = () => {
+          if (profile) {
+            clearTimeout(timeout);
+            resolve({ user: data.user, profile });
+          } else {
+            setTimeout(checkProfile, 100);
+          }
+        };
+        
+        checkProfile();
+      });
     } catch (error) {
       setLoading(false);
       throw error;
