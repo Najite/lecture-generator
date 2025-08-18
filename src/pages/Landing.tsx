@@ -1,8 +1,20 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Brain, Users, Sparkles, BookOpen, ArrowRight, CheckCircle } from 'lucide-react';
+import { Brain, Users, Sparkles, BookOpen, ArrowRight, CheckCircle, LogOut } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Landing() {
+  const { user, profile, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      // Page will automatically update to show login buttons
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -21,33 +33,58 @@ export function Landing() {
             <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
               Generate comprehensive course materials, lesson plans, and educational content instantly with our advanced AI platform
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/login"
-                className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-all duration-200 transform hover:scale-105"
-              >
-                Get Started as Lecturer
-                <ArrowRight className="inline-block ml-2 h-5 w-5" />
-              </Link>
-              <Link
-                to="/register"
-                className="bg-emerald-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-emerald-700 transition-all duration-200 transform hover:scale-105"
-              >
-                Create Lecturer Account
-              </Link>
-              <Link
-                to="/admin/login"
-                className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white hover:text-blue-600 transition-all duration-200"
-              >
-                Admin Access
-              </Link>
-              <Link
-                to="/admin/register"
-                className="bg-purple-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-purple-700 transition-all duration-200"
-              >
-                Create Admin Account
-              </Link>
-            </div>
+            {user && profile ? (
+              <div className="flex flex-col items-center space-y-4">
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-6 text-center">
+                  <p className="text-blue-100 mb-2">Welcome back, {profile.full_name}!</p>
+                  <p className="text-blue-200 text-sm mb-4">You are logged in as {profile.role}</p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <Link
+                      to={profile.role === 'admin' ? '/admin' : '/dashboard'}
+                      className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-all duration-200 transform hover:scale-105 inline-flex items-center justify-center"
+                    >
+                      Go to Dashboard
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="border-2 border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-all duration-200 inline-flex items-center justify-center"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  to="/login"
+                  className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-all duration-200 transform hover:scale-105"
+                >
+                  Get Started as Lecturer
+                  <ArrowRight className="inline-block ml-2 h-5 w-5" />
+                </Link>
+                <Link
+                  to="/register"
+                  className="bg-emerald-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-emerald-700 transition-all duration-200 transform hover:scale-105"
+                >
+                  Create Lecturer Account
+                </Link>
+                <Link
+                  to="/admin/login"
+                  className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white hover:text-blue-600 transition-all duration-200"
+                >
+                  Admin Access
+                </Link>
+                <Link
+                  to="/admin/register"
+                  className="bg-purple-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-purple-700 transition-all duration-200"
+                >
+                  Create Admin Account
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </section>
