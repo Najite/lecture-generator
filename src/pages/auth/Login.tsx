@@ -18,14 +18,7 @@ export function Login({ type }: LoginProps) {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (user && profile && !authLoading) {
-      console.log('🔄 User already authenticated, redirecting...', { role: profile.role });
-      if (profile.role === 'admin') {
-        navigate('/admin', { replace: true });
-      } else if (profile.role === 'lecturer') {
-        navigate('/dashboard', { replace: true });
-      }
-    }
+    // No automatic redirects - users must explicitly log in
   }, [user, profile, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {

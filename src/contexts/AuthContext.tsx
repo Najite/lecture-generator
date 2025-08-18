@@ -31,7 +31,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     console.log('🔧 AUTH PROVIDER: Initializing...');
     
-    // Don't restore sessions automatically - users must explicitly log in
+    // Clear any existing session on initialization
+    supabase.auth.signOut();
     setLoading(false);
     
     // Listen for auth changes
@@ -61,6 +62,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setProfile(null);
         setLoading(false);
+      } else if (event === 'INITIAL_SESSION') {
+        console.log('🔄 Initial session detected - clearing it');
+        if (session) {
+          supabase.auth.signOut();
+        }
       }
     });
 
