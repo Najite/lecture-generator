@@ -109,6 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           console.log('Profile created successfully:', newProfile);
           setProfile(newProfile);
+          setLoading(false);
+          setProfile(newProfile);
           return newProfile;
         } else {
           throw error;
@@ -117,10 +119,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Profile found:', data);
         setProfile(data);
         setLoading(false);
+        setProfile(data);
+        setLoading(false);
         return data;
       }
     } catch (error: any) {
       console.error('Error fetching profile:', error);
+      setProfile(null);
+      setUser(null);
+      setLoading(false);
       setProfile(null);
       setLoading(false);
       throw error;
