@@ -45,7 +45,7 @@ export function AdminDashboard() {
         adminClient.from('course_assignments').select(`
           *,
           course:courses(*),
-          lecturer:profiles(*)
+          lecturer:profiles!course_assignments_lecturer_id_fkey(*)
         `),
         adminClient.from('generated_content').select(`
           *,
