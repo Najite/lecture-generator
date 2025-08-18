@@ -48,14 +48,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, session?.user?.email);
       
-      // Only handle explicit sign in/out events, not automatic session restoration
       if (event === 'SIGNED_IN' && session?.user) {
         console.log('Handling SIGNED_IN event');
         try {
           setUser(session.user);
+          setUser(session.user);
           await fetchProfile(session.user.id);
         } catch (error) {
           console.error('Error handling sign in:', error);
+          setUser(null);
+          setProfile(null);
           setLoading(false);
         }
       } else if (event === 'SIGNED_OUT') {
@@ -107,18 +109,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           console.log('Profile created successfully:', newProfile);
           setProfile(newProfile);
-          setLoading(false);
           return newProfile;
+        } else {
           throw error;
         }
       } else {
         console.log('Profile found:', data);
         setProfile(data);
+        setLoading(false);
         return data;
       }
     } catch (error: any) {
       console.error('Error fetching profile:', error);
       setProfile(null);
+      setLoading(false);
       throw error;
     }
   };
