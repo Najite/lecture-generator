@@ -18,8 +18,8 @@ export function Login({ type }: LoginProps) {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (!authLoading && user && profile) {
-      console.log('User already authenticated, redirecting...', { role: profile.role });
+    if (user && profile && !authLoading) {
+      console.log('🔄 User already authenticated, redirecting...', { role: profile.role });
       if (profile.role === 'admin') {
         navigate('/admin', { replace: true });
       } else if (profile.role === 'lecturer') {
@@ -34,23 +34,23 @@ export function Login({ type }: LoginProps) {
     setLoading(true);
 
     try {
-      console.log('Attempting login for:', email);
+      console.log('🔐 Attempting login for:', email);
       const { user, profile } = await signIn(email, password);
-      console.log('Login successful:', { email: user.email, role: profile.role });
+      console.log('✅ Login successful:', { email: user.email, role: profile.role });
       
       // Navigate based on user role
       if (profile.role === 'admin') {
-        console.log('Navigating to admin dashboard');
+        console.log('🏢 Navigating to admin dashboard');
         navigate('/admin', { replace: true });
       } else if (profile.role === 'lecturer') {
-        console.log('Navigating to lecturer dashboard');
+        console.log('👨‍🏫 Navigating to lecturer dashboard');
         navigate('/dashboard', { replace: true });
       } else {
-        console.error('Unknown user role:', profile.role);
+        console.error('❓ Unknown user role:', profile.role);
         setError('Invalid user role. Please contact administrator.');
       }
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       if (error.message?.includes('Invalid login credentials')) {
         setError('Invalid email or password. Please check your credentials and try again.');
       } else if (error.message?.includes('Email not confirmed')) {

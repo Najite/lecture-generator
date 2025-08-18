@@ -11,38 +11,38 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'admin' | 'lecturer' }) {
   const { user, profile, loading } = useAuth();
 
-  console.log('=== PROTECTED ROUTE CHECK ===');
-  console.log('User:', user?.email || 'null');
-  console.log('Profile:', profile ? { id: profile.id, role: profile.role, email: profile.email } : 'null');
-  console.log('Loading:', loading);
-  console.log('Required Role:', requiredRole);
-  console.log('================================');
+  console.log('🛡️ PROTECTED ROUTE CHECK:', {
+    hasUser: !!user,
+    userEmail: user?.email,
+    hasProfile: !!profile,
+    profileRole: profile?.role,
+    loading,
+    requiredRole
+  });
 
   if (loading) {
-    console.log('🔄 PROTECTED ROUTE: Still loading, showing spinner...');
+    console.log('⏳ PROTECTED ROUTE: Loading auth state...');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+          <p className="mt-4 text-gray-600">Authenticating...</p>
         </div>
       </div>
     );
   }
 
   if (!user || !profile) {
-    console.log('❌ PROTECTED ROUTE: No user or profile, redirecting to login');
-    console.log('User exists:', !!user);
-    console.log('Profile exists:', !!profile);
+    console.log('🚫 PROTECTED ROUTE: Access denied - redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
   if (requiredRole && profile.role !== requiredRole) {
-    console.log('🚫 PROTECTED ROUTE: Role mismatch, redirecting:', { userRole: profile.role, requiredRole });
+    console.log('🔀 PROTECTED ROUTE: Role mismatch, redirecting to correct dashboard');
     return <Navigate to={profile.role === 'admin' ? '/admin' : '/dashboard'} replace />;
   }
 
-  console.log('✅ PROTECTED ROUTE: Access granted, rendering children');
+  console.log('✅ PROTECTED ROUTE: Access granted');
   return <>{children}</>;
 }
 
