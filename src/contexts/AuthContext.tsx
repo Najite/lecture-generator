@@ -109,19 +109,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(newProfile);
           setLoading(false);
           return newProfile;
-        } else {
           throw error;
         }
       } else {
         console.log('Profile found:', data);
         setProfile(data);
-        setLoading(false);
         return data;
       }
     } catch (error: any) {
       console.error('Error fetching profile:', error);
       setProfile(null);
-      setLoading(false);
       throw error;
     }
   };
@@ -148,27 +145,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       console.log('Sign in successful, fetching profile...');
-      // Don't call fetchProfile here - let the auth state change handler do it
-      // to avoid double calls and race conditions
       setUser(data.user);
       
-      // Wait for profile to be set by the auth state change handler
-      return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Profile loading timeout'));
-        }, 10000);
-        
-        const checkProfile = () => {
-          if (profile) {
-            clearTimeout(timeout);
-            resolve({ user: data.user, profile });
-          } else {
-            setTimeout(checkProfile, 100);
-          }
-        };
-        
-        checkProfile();
-      });
+      // Directly fetch the profile
+      const userProfile = await fetchProfile(data.user.id);
+      setLoading(false);
+      
+      return { user: data.user, profile: userProfile };
     } catch (error) {
       setLoading(false);
       throw error;
