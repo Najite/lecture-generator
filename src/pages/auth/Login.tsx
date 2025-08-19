@@ -163,14 +163,14 @@ export function Login({ type }: LoginProps) {
                 ← Back to Home
               </Link>
             </div>
-            <div className="text-sm">
+            {/* <div className="text-sm">
               <Link
                 to={type === 'admin' ? '/admin/register' : '/register'}
                 className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
               >
                 Create Account
               </Link>
-            </div>
+            </div> */}
           </div>
 
           <div className="flex items-center justify-between">

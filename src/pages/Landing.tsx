@@ -43,12 +43,12 @@ export function Landing() {
                 >
                   Admin Access
                 </Link>
-                <Link
+                {/* <Link
                   to="/admin/register"
                   className="bg-purple-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-purple-700 transition-all duration-200"
                 >
                   Create Admin Account
-                </Link>
+                </Link> */}
               </div>
             
           </div>
