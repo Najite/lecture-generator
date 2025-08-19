@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Users, BookOpen, FileText, Plus, UserPlus } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase, createAdminClient, Profile, Course, CourseAssignment, GeneratedContent } from '../../lib/supabase';
-import { AdminSetupInstructions } from '../../components/AdminSetupInstructions';
+// import { AdminSetupInstructions } from '../../components/AdminSetupInstructions';
 
 export function AdminDashboard() {
   const { profile } = useAuth();
@@ -200,7 +200,7 @@ ${userRole === 'admin' ?
         </div>
 
         {/* Setup Instructions */}
-        <AdminSetupInstructions />
+        {/* <AdminSetupInstructions /> */}
 
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-4 mb-8">
