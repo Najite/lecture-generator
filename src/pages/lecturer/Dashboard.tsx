@@ -4,6 +4,35 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase, CourseAssignment, GeneratedContent } from '../../lib/supabase';
 import { generateCourseContent } from '../../lib/openrouter';
 
+// Simple markdown-to-HTML converter for basic formatting
+const formatContent = (content) => {
+  if (!content) return '';
+  
+  let formatted = content
+    // Convert ### headers to h3
+    .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold mt-4 mb-2 text-gray-800">$1</h3>')
+    // Convert ## headers to h2
+    .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold mt-6 mb-3 text-gray-800">$1</h2>')
+    // Convert # headers to h1
+    .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-6 mb-4 text-gray-900">$1</h1>')
+    // Convert bullet points - handle both * and - at start of line
+    .replace(/^[\*\-] (.*)$/gm, '<li class="ml-4 mb-1">$1</li>')
+    // Convert **bold** to <strong> (but not bullet points)
+    .replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>')
+    // Convert remaining single * for italic (not at start of line)
+    .replace(/(?<!^)\*([^\*\n]+)\*/g, '<em>$1</em>')
+    // Convert line breaks to <br> tags
+    .replace(/\n/g, '<br>');
+
+  // Wrap consecutive list items in ul tags
+  formatted = formatted.replace(/(<li.*?<\/li><br>?)+/g, function(match) {
+    const listItems = match.replace(/<br>/g, '');
+    return `<ul class="list-disc list-inside my-3 ml-4 space-y-1">${listItems}</ul>`;
+  });
+
+  return formatted;
+};
+
 export function LecturerDashboard() {
   const { profile } = useAuth();
   const [assignments, setAssignments] = useState<CourseAssignment[]>([]);
@@ -62,13 +91,36 @@ export function LecturerDashboard() {
     }
   };
 
+  // Helper function to create default prompt based on course and content type
+  const createDefaultPrompt = (courseInfo, contentType) => {
+    const courseTitle = courseInfo?.title || 'Selected Course';
+    const courseCode = courseInfo?.code || '';
+    const courseDescription = courseInfo?.description || '';
+    
+    const defaultPrompts = {
+      lesson: `Create a comprehensive lesson plan for ${courseTitle} (${courseCode}). ${courseDescription ? `Course context: ${courseDescription}` : ''}`,
+      assignment: `Create an assignment for ${courseTitle} (${courseCode}). ${courseDescription ? `Course context: ${courseDescription}` : ''}`,
+      quiz: `Create quiz questions for ${courseTitle} (${courseCode}). ${courseDescription ? `Course context: ${courseDescription}` : ''}`,
+      summary: `Create a course summary for ${courseTitle} (${courseCode}). ${courseDescription ? `Course context: ${courseDescription}` : ''}`,
+      notes: `Create study notes for ${courseTitle} (${courseCode}). ${courseDescription ? `Course context: ${courseDescription}` : ''}`
+    };
+    
+    return defaultPrompts[contentType] || `Create ${contentType} content for ${courseTitle}`;
+  };
+
   const handleGenerateContent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCourse || !prompt) return;
+    if (!selectedCourse) return;
+
+    // Find the selected course info
+    const selectedCourseInfo = assignments.find(a => a.course_id === selectedCourse)?.course;
+    
+    // Use provided prompt or create default one
+    const finalPrompt = prompt.trim() || createDefaultPrompt(selectedCourseInfo, contentType);
 
     setGenerating(selectedCourse);
     try {
-      const content = await generateCourseContent(prompt, contentType);
+      const content = await generateCourseContent(finalPrompt, contentType);
       
       const { error } = await supabase
         .from('generated_content')
@@ -76,9 +128,9 @@ export function LecturerDashboard() {
           course_id: selectedCourse,
           lecturer_id: profile?.id,
           content_type: contentType,
-          title: `${contentType.charAt(0).toUpperCase() + contentType.slice(1)}: ${prompt.slice(0, 50)}...`,
+          title: `${contentType.charAt(0).toUpperCase() + contentType.slice(1)}: ${selectedCourseInfo?.title || 'Course Content'}`,
           content,
-          prompt_used: prompt
+          prompt_used: finalPrompt
         });
 
       if (error) throw error;
@@ -260,25 +312,16 @@ export function LecturerDashboard() {
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="lesson">Lesson Plan</option>
-                    <option value="assignment">Assignment</option>
-                    <option value="quiz">Quiz Questions</option>
-                    <option value="summary">Course Summary</option>
-                    <option value="notes">Study Notes</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Content Description
-                  </label>
-                  <textarea
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    rows={4}
-                    placeholder="Describe what content you'd like to generate..."
-                    required
-                  />
+                 
+                  {selectedCourse && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Default: Will generate {contentType} content for {assignments.find(a => a.course_id === selectedCourse)?.course?.title}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-4">
@@ -332,9 +375,12 @@ export function LecturerDashboard() {
               </div>
               
               <div className="prose max-w-none">
-                <div className="bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
-                  {viewContent.content}
-                </div>
+                <div 
+                  className="bg-gray-50 p-6 rounded-lg border leading-relaxed"
+                  dangerouslySetInnerHTML={{ 
+                    __html: formatContent(viewContent.content) 
+                  }}
+                />
               </div>
               
               <div className="mt-6 pt-4 border-t border-gray-200">

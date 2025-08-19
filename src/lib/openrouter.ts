@@ -22,7 +22,7 @@ export async function generateCourseContent(
       messages: [
         {
           role: 'system',
-          content: `You are an expert educational content creator. Generate high-quality, engaging ${contentType} content for university-level courses. Structure your content with clear headings, bullet points, and examples where appropriate. Make it educational, comprehensive, and easy to understand.`
+          content: `You are an expert educational content creator. Generate high-quality, engaging ${contentType} content for university-level courses. Structure your content with clear headings, bullet points, and examples where appropriate. Make it educational, comprehensive, and easy to understand. Ensure that the `
         },
         {
           role: 'user',

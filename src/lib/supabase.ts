@@ -9,9 +9,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: false, // Enable session persistence
-    autoRefreshToken: false, // Automatically refresh tokens
+    persistSession: true, // ✅ Enable session persistence (was false)
+    autoRefreshToken: true, // ✅ Automatically refresh tokens (was false)
+    detectSessionInUrl: false, // Set to true if using OAuth redirects
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined, // Explicitly set storage
   }
+  
 })
 
 // Admin functions that use service role for elevated permissions
