@@ -34,10 +34,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const initializingRef = useRef(false);
   const initializedRef = useRef(false);
 
-  const fetchProfile = useCallback(async (userId: string): Promise<Profile> => {
-    console.log('📋 === FETCH PROFILE START ===');
-    console.log('📋 User ID:', userId);
-    
+  // Enhanced fetchProfile with timeout protection
+const fetchProfile = async (userId: string): Promise<Profile> => {
+  console.log('📋 === FETCH PROFILE START ===');
+  console.log('📋 User ID:', userId);
+  
+  // Add timeout to prevent hanging
+  const TIMEOUT_MS = 10000; // 10 seconds
+  
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Profile fetch timeout after ${TIMEOUT_MS}ms`));
+    }, TIMEOUT_MS);
+  });
+  
+  const fetchPromise = async () => {
     try {
       console.log('📋 Step 1: Querying profiles table...');
       
@@ -106,7 +117,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('❌ Error details:', error);
       throw error;
     }
-  }, []);
+  };
+  
+  // Race between fetch and timeout
+  return Promise.race([fetchPromise(), timeoutPromise]);
+};
 
   // Separate function to handle user and profile state updates
   const updateUserAndProfile = useCallback(async (newUser: User | null) => {
