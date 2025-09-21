@@ -5,7 +5,7 @@ import { supabase, createAdminClient, Profile, Course, CourseAssignment, Generat
 // import { AdminSetupInstructions } from '../../components/AdminSetupInstructions';
 
 export function AdminDashboard() {
-  const { profile } = useAuth();
+  const { profile } = useAuthzz();
   const [lecturers, setLecturers] = useState<Profile[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [assignments, setAssignments] = useState<CourseAssignment[]>([]);
@@ -312,7 +312,7 @@ ${userRole === 'admin' ?
                 courses.map((course) => (
                   <div key={course.id} className="p-3 border border-gray-200 rounded-lg">
                     <h3 className="font-medium text-gray-900">{course.title}</h3>
-                    <p className="text-sm text-gray-600">{course.code}</p>
+                    <p className="text-sm text-gray-600">{courxse.code}</p>
                     <p className="text-xs text-gray-500 mt-1">{course.description}</p>
                   </div>
                 ))
