@@ -99,11 +99,15 @@ export function AdminDashboard() {
   const handleCreateLecturer = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Store current admin session to restore later
+      const { data: currentSession } = await supabase.auth.getSession();
+      
       const adminClient = createAdminClient();
       
       // Determine role based on email or explicit selection
       const userRole = lecturerEmail === 'admin@eduai.com' ? 'admin' : 'lecturer';
       
+      // Create the user account (this will auto-sign them in)
       const { data, error } = await adminClient.auth.signUp({
         email: lecturerEmail,
         password: lecturerPassword,
@@ -116,6 +120,11 @@ export function AdminDashboard() {
       });
 
       if (error) throw error;
+
+      // Immediately restore the admin session to keep admin logged in
+      if (currentSession?.session) {
+        await supabase.auth.setSession(currentSession.session);
+      }
 
       // Show detailed success message
       const successMessage = `✅ Account created successfully!
