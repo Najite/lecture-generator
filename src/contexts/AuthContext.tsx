@@ -10,7 +10,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string, role?: 'admin' | 'lecturer') => Promise<void>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
-  isLecturer: boolean;
+  isLecturer: boolean;d
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
