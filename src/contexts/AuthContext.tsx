@@ -307,23 +307,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    console.log('🚪 === SIGN OUT START ===');
-    setLoading(true);
+  console.log('🚪 === SIGN OUT START ===');
+  setLoading(true);
+  
+  try {
+    // Clear local state immediately
+    userRef.current = null;
+    profileRef.current = null;
+    setUser(null);
+    setProfile(null);
     
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('❌ Sign out error:', error);
-        throw error;
-      }
-      
-      console.log('✅ Sign out complete');
-    } catch (error) {
-      console.error('❌ Sign out failed:', error);
-      setLoading(false);
+    // Sign out from Supabase
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('❌ Sign out error:', error);
       throw error;
     }
-  };
+    
+    console.log('✅ Sign out complete');
+  } catch (error) {
+    console.error('❌ Sign out failed:', error);
+    // Even if there's an error, clear the local state
+    userRef.current = null;
+    profileRef.current = null;
+    setUser(null);
+    setProfile(null);
+    throw error;
+  } finally {
+    setLoading(false);
+  }
+};
 
   const value = {
     user,

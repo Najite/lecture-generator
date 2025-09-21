@@ -9,10 +9,14 @@ export function Header() {
 
   const handleSignOut = async () => {
     try {
+      // Wait for the signOut to complete before navigating
       await signOut();
-      navigate('/');
+      // Navigate to home page after successful sign out
+      navigate('/', { replace: true });
     } catch (error) {
       console.error('Error signing out:', error);
+      // Still navigate on error to prevent being stuck
+      navigate('/', { replace: true });
     }
   };
 
@@ -50,7 +54,7 @@ export function Header() {
                     <button className="flex items-center space-x-1 text-gray-700 hover:text-blue-600 transition-colors">
                       <User className="h-5 w-5" />
                     </button>
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                       <button
                         onClick={handleSignOut}
                         className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
