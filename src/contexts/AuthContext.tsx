@@ -27,28 +27,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
   
-  // Use refs to prevent unnecessary re-renders and track initialization
+  // Use refs to track state and prevent unnecessary re-renders
   const userRef = useRef<User | null>(null);
   const profileRef = useRef<Profile | null>(null);
   const initializingRef = useRef(false);
-  const initializedRef = useRef(false);
 
-  // Enhanced fetchProfile with timeout protection
-const fetchProfile = async (userId: string): Promise<Profile> => {
-  console.log('📋 === FETCH PROFILE START ===');
-  console.log('📋 User ID:', userId);
-  
-  // Add timeout to prevent hanging
-  const TIMEOUT_MS = 10000; // 10 seconds
-  
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => {
-      reject(new Error(`Profile fetch timeout after ${TIMEOUT_MS}ms`));
-    }, TIMEOUT_MS);
-  });
-  
-  const fetchPromise = async () => {
+  const fetchProfile = useCallback(async (userId: string): Promise<Profile> => {
+    console.log('📋 === FETCH PROFILE START ===');
+    console.log('📋 User ID:', userId);
+    
     try {
       console.log('📋 Step 1: Querying profiles table...');
       
@@ -117,31 +106,25 @@ const fetchProfile = async (userId: string): Promise<Profile> => {
       console.error('❌ Error details:', error);
       throw error;
     }
-  };
-  
-  // Race between fetch and timeout
-  return Promise.race([fetchPromise(), timeoutPromise]);
-};
+  }, []);
 
   // Separate function to handle user and profile state updates
   const updateUserAndProfile = useCallback(async (newUser: User | null) => {
-    console.log('🔄 updateUserAndProfile called with:', newUser?.email || 'null');
-    
     if (!newUser) {
       // User signed out
-      console.log('🚪 Clearing user and profile state');
-      userRef.current = null;
-      profileRef.current = null;
-      setUser(null);
-      setProfile(null);
-      setLoading(false);
+      if (userRef.current || profileRef.current) {
+        console.log('🚪 Clearing user and profile state');
+        userRef.current = null;
+        profileRef.current = null;
+        setUser(null);
+        setProfile(null);
+      }
       return;
     }
 
     // Check if this is the same user to avoid unnecessary updates
     if (userRef.current?.id === newUser.id) {
       console.log('🔄 Same user, skipping update');
-      setLoading(false);
       return;
     }
 
@@ -160,11 +143,7 @@ const fetchProfile = async (userId: string): Promise<Profile> => {
       console.log('✅ User and profile updated successfully');
     } catch (error) {
       console.error('❌ Error updating user profile:', error);
-      // Set user but clear profile on error
-      userRef.current = newUser;
-      profileRef.current = null;
-      setUser(newUser);
-      setProfile(null);
+      // Don't clear the user, just log the error
     } finally {
       setLoading(false);
     }
@@ -174,8 +153,8 @@ const fetchProfile = async (userId: string): Promise<Profile> => {
     console.log('🔧 AUTH PROVIDER: Initializing...');
     
     // Prevent multiple initializations
-    if (initializingRef.current || initializedRef.current) {
-      console.log('🔧 Already initialized or initializing, skipping...');
+    if (initializingRef.current) {
+      console.log('🔧 Already initializing, skipping...');
       return;
     }
     
@@ -184,12 +163,10 @@ const fetchProfile = async (userId: string): Promise<Profile> => {
     // Check for existing session on mount
     const initializeAuth = async () => {
       try {
-        console.log('🔧 Getting initial session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('❌ Error getting initial session:', error);
-          setLoading(false);
           return;
         }
         
@@ -198,13 +175,12 @@ const fetchProfile = async (userId: string): Promise<Profile> => {
           await updateUserAndProfile(session.user);
         } else {
           console.log('📭 No existing session found');
-          setLoading(false);
         }
       } catch (error) {
         console.error('❌ Error initializing auth:', error);
-        setLoading(false);
       } finally {
-        initializedRef.current = true;
+        setLoading(false);
+        setInitialized(true);
         initializingRef.current = false;
       }
     };
@@ -217,14 +193,19 @@ const fetchProfile = async (userId: string): Promise<Profile> => {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔄 Auth state change:', event, session?.user?.email || 'no user');
       
-      // Skip initial session during setup
-      if (event === 'INITIAL_SESSION' && !initializedRef.current) {
-        console.log('🔄 Skipping INITIAL_SESSION during initialization');
+      // Skip if we're still initializing
+      if (!initialized && initializingRef.current) {
+        console.log('🔄 Skipping auth change during initialization');
         return;
       }
       
       // Handle different auth events
       switch (event) {
+        case 'INITIAL_SESSION':
+          // Skip - handled in initialization
+          console.log('🔄 Skipping INITIAL_SESSION - handled during init');
+          break;
+          
         case 'SIGNED_IN':
           console.log('✅ Handling SIGNED_IN event');
           if (session?.user) {
@@ -235,11 +216,12 @@ const fetchProfile = async (userId: string): Promise<Profile> => {
         case 'SIGNED_OUT':
           console.log('🚪 Handling SIGNED_OUT event');
           await updateUserAndProfile(null);
+          setLoading(false);
           break;
           
         case 'TOKEN_REFRESHED':
           console.log('🔄 Token refreshed for user:', session?.user?.email);
-          // Only update if it's a different user
+          // No need to update state on token refresh if it's the same user
           if (session?.user && userRef.current?.id !== session.user.id) {
             await updateUserAndProfile(session.user);
           }
@@ -261,7 +243,7 @@ const fetchProfile = async (userId: string): Promise<Profile> => {
       console.log('🧹 Cleaning up auth subscription');
       subscription.unsubscribe();
     };
-  }, []); // Empty dependency array - only run once on mount
+  }, []); // Remove all dependencies to prevent re-initialization
 
   const signIn = async (email: string, password: string): Promise<{ user: User; profile: Profile }> => {
     console.log('🔐 === SIGN IN START ===');
@@ -285,23 +267,10 @@ const fetchProfile = async (userId: string): Promise<Profile> => {
         throw new Error('No user returned from sign in');
       }
       
-      console.log('✅ Sign in successful, auth state change will handle the rest...');
-      // Don't call updateUserAndProfile here - let the auth state change handle it
-      // The loading state will be managed by the auth state change handler
+      console.log('✅ Sign in successful, updating state...');
+      await updateUserAndProfile(data.user);
       
-      // Wait for profile to be available
-      let attempts = 0;
-      const maxAttempts = 10;
-      while (attempts < maxAttempts && !profileRef.current) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-      }
-      
-      if (!profileRef.current) {
-        throw new Error('Profile not loaded after sign in');
-      }
-      
-      return { user: data.user, profile: profileRef.current };
+      return { user: data.user, profile: profileRef.current! };
     } catch (error) {
       console.error('❌ Sign in failed:', error);
       setLoading(false);
@@ -349,7 +318,6 @@ const fetchProfile = async (userId: string): Promise<Profile> => {
       }
       
       console.log('✅ Sign out complete');
-      // Auth state change will handle clearing the state
     } catch (error) {
       console.error('❌ Sign out failed:', error);
       setLoading(false);
@@ -374,7 +342,7 @@ const fetchProfile = async (userId: string): Promise<Profile> => {
     hasProfile: !!profile,
     profileRole: profile?.role,
     loading,
-    initialized: initializedRef.current
+    initialized
   });
 
   return (

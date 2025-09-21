@@ -46,10 +46,45 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
   return <>{children}</>;
 }
 
+// New component to handle landing page logic
+function LandingPageHandler() {
+  const { user, profile, loading } = useAuth();
+
+  console.log('🏠 LANDING PAGE CHECK:', {
+    hasUser: !!user,
+    userEmail: user?.email,
+    hasProfile: !!profile,
+    profileRole: profile?.role,
+    loading
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is authenticated and has a profile, redirect to appropriate dashboard
+  if (user && profile) {
+    console.log('🔀 LANDING: Authenticated user, redirecting to dashboard');
+    const dashboardRoute = profile.role === 'admin' ? '/admin' : '/dashboard';
+    return <Navigate to={dashboardRoute} replace />;
+  }
+
+  // Otherwise show the landing page
+  console.log('👋 LANDING: Showing landing page for unauthenticated user');
+  return <Landing />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Landing />} />
+      <Route path="/" element={<LandingPageHandler />} />
       <Route path="/login" element={<Login type="lecturer" />} />
       <Route path="/register" element={<Register type="lecturer" />} />
       <Route path="/admin/login" element={<Login type="admin" />} />
