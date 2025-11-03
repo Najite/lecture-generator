@@ -20,7 +20,7 @@ export function Landing() {
               <span className="block text-blue-200">For Modern Educators</span>
             </h1>
             <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
-             A project by student of Computer Science Department MAPOLY, To Generate comprehensive course materials, lesson plans, and educational content instantly with our advanced AI platform
+             A project by students of Computer Science Department MAPOLY, To Generate comprehensive course materials, lesson plans, and educational content instantly with our advanced AI platform
             </p>
            
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
