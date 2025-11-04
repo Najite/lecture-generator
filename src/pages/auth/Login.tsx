@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Brain, Mail, Lock, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { Toast } from '../../components/Toast'; // Import the Toast component
 
 interface LoginProps {
   type: 'lecturer' | 'admin';
@@ -12,6 +13,7 @@ export function Login({ type }: LoginProps) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   
   const { signIn, user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -31,26 +33,42 @@ export function Login({ type }: LoginProps) {
       const { user, profile } = await signIn(email, password);
       console.log('✅ Login successful:', { email: user.email, role: profile.role });
       
-      // Navigate based on user role
-      if (profile.role === 'admin') {
-        console.log('🏢 Navigating to admin dashboard');
-        navigate('/admin', { replace: true });
-      } else if (profile.role === 'lecturer') {
-        console.log('👨‍🏫 Navigating to lecturer dashboard');
-        navigate('/dashboard', { replace: true });
-      } else {
-        console.error('❓ Unknown user role:', profile.role);
-        setError('Invalid user role. Please contact administrator.');
-      }
+      // Show success toast
+      setToast({
+        message: `Welcome back! Logged in as ${profile.role}`,
+        type: 'success'
+      });
+
+      // Navigate after a short delay to show the toast
+      setTimeout(() => {
+        if (profile.role === 'admin') {
+          console.log('🏢 Navigating to admin dashboard');
+          navigate('/admin', { replace: true });
+        } else if (profile.role === 'lecturer') {
+          console.log('👨‍🏫 Navigating to lecturer dashboard');
+          navigate('/dashboard', { replace: true });
+        } else {
+          console.error('❓ Unknown user role:', profile.role);
+          setError('Invalid user role. Please contact administrator.');
+        }
+      }, 1000);
     } catch (error: any) {
       console.error('❌ Login error:', error);
+      let errorMessage = '';
+      
       if (error.message?.includes('Invalid login credentials')) {
-        setError('Invalid email or password. Please check your credentials and try again.');
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
       } else if (error.message?.includes('Email not confirmed')) {
-        setError('Please check your email and confirm your account before signing in.');
+        errorMessage = 'Please check your email and confirm your account before signing in.';
       } else {
-        setError(error.message || 'Login failed. Please try again.');
+        errorMessage = error.message || 'Login failed. Please try again.';
       }
+      
+      setError(errorMessage);
+      setToast({
+        message: errorMessage,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -70,6 +88,15 @@ export function Login({ type }: LoginProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      {/* Toast notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       <div className="max-w-md w-full space-y-8">
         <div>
           <div className="flex justify-center">
@@ -163,14 +190,6 @@ export function Login({ type }: LoginProps) {
                 ← Back to Home
               </Link>
             </div>
-            {/* <div className="text-sm">
-              <Link
-                to={type === 'admin' ? '/admin/register' : '/register'}
-                className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
-              >
-                Create Account
-              </Link>
-            </div> */}
           </div>
 
           <div className="flex items-center justify-between">
