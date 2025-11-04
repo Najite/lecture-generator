@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Brain, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Brain, Mail, Lock, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Toast } from '../../components/Toast'; // Import the Toast component
 
 interface LoginProps {
   type: 'lecturer' | 'admin';
@@ -13,15 +12,39 @@ export function Login({ type }: LoginProps) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
   
   const { signIn, user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Auto-hide toast after 3 seconds
+  useEffect(() => {
+    if (showToast) {
+      const timer = setTimeout(() => {
+        setShowToast(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showToast]);
 
   // Redirect if already authenticated
   useEffect(() => {
     // No automatic redirects - users must explicitly log in
   }, [user, profile, authLoading, navigate]);
+
+  const showSuccessToast = (message: string) => {
+    setToastMessage(message);
+    setToastType('success');
+    setShowToast(true);
+  };
+
+  const showErrorToast = (message: string) => {
+    setToastMessage(message);
+    setToastType('error');
+    setShowToast(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,10 +57,7 @@ export function Login({ type }: LoginProps) {
       console.log('✅ Login successful:', { email: user.email, role: profile.role });
       
       // Show success toast
-      setToast({
-        message: `Welcome back! Logged in as ${profile.role}`,
-        type: 'success'
-      });
+      showSuccessToast(`Welcome back! Logged in as ${profile.role}`);
 
       // Navigate after a short delay to show the toast
       setTimeout(() => {
@@ -65,10 +85,7 @@ export function Login({ type }: LoginProps) {
       }
       
       setError(errorMessage);
-      setToast({
-        message: errorMessage,
-        type: 'error'
-      });
+      showErrorToast(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -89,13 +106,50 @@ export function Login({ type }: LoginProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       {/* Toast notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
+      {showToast && (
+        <div 
+          className="fixed top-4 right-4 z-50 animate-slide-in"
+          style={{
+            animation: 'slideIn 0.3s ease-out'
+          }}
+        >
+          <div className={`${
+            toastType === 'success' 
+              ? 'bg-green-50 border-green-200' 
+              : 'bg-red-50 border-red-200'
+          } border rounded-lg shadow-lg p-4 flex items-center space-x-3 min-w-[300px] max-w-md`}>
+            {toastType === 'success' ? (
+              <CheckCircle className="h-5 w-5 text-green-500" />
+            ) : (
+              <AlertCircle className="h-5 w-5 text-red-500" />
+            )}
+            <span className={`${
+              toastType === 'success' ? 'text-green-800' : 'text-red-800'
+            } flex-1 font-medium`}>
+              {toastMessage}
+            </span>
+            <button
+              onClick={() => setShowToast(false)}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       )}
+
+      <style>{`
+        @keyframes slideIn {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
 
       <div className="max-w-md w-full space-y-8">
         <div>
