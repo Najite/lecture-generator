@@ -69,7 +69,7 @@ export function Login({ type }: LoginProps) {
       
       // Show success toast
       const roleName = profile.role.charAt(0).toUpperCase() + profile.role.slice(1);
-      showSuccessToast(`Welcome back, ${roleName}! Login successful`);
+      showSuccessToast('Login successful');
 
       // Navigate after a short delay to show the toast
       setTimeout(() => {
