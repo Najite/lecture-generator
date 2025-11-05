@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Brain, Mail, Lock, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Brain, Mail, Lock, AlertCircle, CheckCircle, X, XCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface LoginProps {
@@ -15,6 +15,7 @@ export function Login({ type }: LoginProps) {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [isExiting, setIsExiting] = useState(false);
   
   const { signIn, user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -23,8 +24,8 @@ export function Login({ type }: LoginProps) {
   useEffect(() => {
     if (showToast) {
       const timer = setTimeout(() => {
-        setShowToast(false);
-      }, 3000);
+        handleCloseToast();
+      }, 4000);
       return () => clearTimeout(timer);
     }
   }, [showToast]);
@@ -34,16 +35,26 @@ export function Login({ type }: LoginProps) {
     // No automatic redirects - users must explicitly log in
   }, [user, profile, authLoading, navigate]);
 
+  const handleCloseToast = () => {
+    setIsExiting(true);
+    setTimeout(() => {
+      setShowToast(false);
+      setIsExiting(false);
+    }, 300);
+  };
+
   const showSuccessToast = (message: string) => {
     setToastMessage(message);
     setToastType('success');
     setShowToast(true);
+    setIsExiting(false);
   };
 
   const showErrorToast = (message: string) => {
     setToastMessage(message);
     setToastType('error');
     setShowToast(true);
+    setIsExiting(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,7 +68,8 @@ export function Login({ type }: LoginProps) {
       console.log('✅ Login successful:', { email: user.email, role: profile.role });
       
       // Show success toast
-      showSuccessToast(`Welcome back! Logged in as ${profile.role}`);
+      const roleName = profile.role.charAt(0).toUpperCase() + profile.role.slice(1);
+      showSuccessToast(`Welcome back, ${roleName}! Login successful`);
 
       // Navigate after a short delay to show the toast
       setTimeout(() => {
@@ -71,15 +83,15 @@ export function Login({ type }: LoginProps) {
           console.error('❓ Unknown user role:', profile.role);
           setError('Invalid user role. Please contact administrator.');
         }
-      }, 1000);
+      }, 1500);
     } catch (error: any) {
       console.error('❌ Login error:', error);
       let errorMessage = '';
       
       if (error.message?.includes('Invalid login credentials')) {
-        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        errorMessage = 'Invalid credentials. Please try again.';
       } else if (error.message?.includes('Email not confirmed')) {
-        errorMessage = 'Please check your email and confirm your account before signing in.';
+        errorMessage = 'Please verify your email before signing in.';
       } else {
         errorMessage = error.message || 'Login failed. Please try again.';
       }
@@ -105,49 +117,117 @@ export function Login({ type }: LoginProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      {/* Toast notification */}
+      {/* Enhanced Toast notification */}
       {showToast && (
         <div 
-          className="fixed top-4 right-4 z-50 animate-slide-in"
-          style={{
-            animation: 'slideIn 0.3s ease-out'
-          }}
+          className={`fixed top-6 right-6 z-50 ${isExiting ? 'toast-exit' : 'toast-enter'}`}
         >
-          <div className={`${
-            toastType === 'success' 
-              ? 'bg-green-50 border-green-200' 
-              : 'bg-red-50 border-red-200'
-          } border rounded-lg shadow-lg p-4 flex items-center space-x-3 min-w-[300px] max-w-md`}>
-            {toastType === 'success' ? (
-              <CheckCircle className="h-5 w-5 text-green-500" />
-            ) : (
-              <AlertCircle className="h-5 w-5 text-red-500" />
-            )}
-            <span className={`${
-              toastType === 'success' ? 'text-green-800' : 'text-red-800'
-            } flex-1 font-medium`}>
-              {toastMessage}
-            </span>
+          <div className={`
+            ${toastType === 'success' 
+              ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300 shadow-green-100' 
+              : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-300 shadow-red-100'
+            } 
+            border-2 rounded-xl shadow-xl p-4 flex items-start space-x-3 min-w-[320px] max-w-md
+            backdrop-blur-sm transition-all duration-300
+          `}>
+            <div className={`
+              ${toastType === 'success' ? 'bg-green-100' : 'bg-red-100'}
+              rounded-full p-1.5 flex-shrink-0
+            `}>
+              {toastType === 'success' ? (
+                <CheckCircle className="h-5 w-5 text-green-600" strokeWidth={2.5} />
+              ) : (
+                <XCircle className="h-5 w-5 text-red-600" strokeWidth={2.5} />
+              )}
+            </div>
+            
+            <div className="flex-1 pt-0.5">
+              <p className={`
+                ${toastType === 'success' ? 'text-green-900' : 'text-red-900'}
+                font-semibold text-sm leading-tight
+              `}>
+                {toastType === 'success' ? 'Success!' : 'Error'}
+              </p>
+              <p className={`
+                ${toastType === 'success' ? 'text-green-800' : 'text-red-800'}
+                text-sm mt-0.5
+              `}>
+                {toastMessage}
+              </p>
+            </div>
+            
             <button
-              onClick={() => setShowToast(false)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              onClick={handleCloseToast}
+              className={`
+                ${toastType === 'success' 
+                  ? 'text-green-400 hover:text-green-600 hover:bg-green-100' 
+                  : 'text-red-400 hover:text-red-600 hover:bg-red-100'
+                }
+                rounded-lg p-1 transition-all duration-200 flex-shrink-0
+              `}
+              aria-label="Close notification"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" strokeWidth={2.5} />
             </button>
+          </div>
+          
+          {/* Progress bar */}
+          <div className={`
+            ${toastType === 'success' ? 'bg-green-200' : 'bg-red-200'}
+            h-1 rounded-b-xl overflow-hidden
+          `}>
+            <div 
+              className={`
+                ${toastType === 'success' ? 'bg-green-500' : 'bg-red-500'}
+                h-full progress-bar
+              `}
+            />
           </div>
         </div>
       )}
 
       <style>{`
-        @keyframes slideIn {
+        @keyframes slideInRight {
           from {
-            transform: translateX(100%);
+            transform: translateX(120%);
             opacity: 0;
           }
           to {
             transform: translateX(0);
             opacity: 1;
           }
+        }
+        
+        @keyframes slideOutRight {
+          from {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateX(120%);
+            opacity: 0;
+          }
+        }
+        
+        @keyframes progressBar {
+          from {
+            width: 100%;
+          }
+          to {
+            width: 0%;
+          }
+        }
+        
+        .toast-enter {
+          animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .toast-exit {
+          animation: slideOutRight 0.3s cubic-bezier(0.4, 0, 1, 1);
+        }
+        
+        .progress-bar {
+          animation: progressBar 4s linear;
         }
       `}</style>
 
